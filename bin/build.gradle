@@ -1,0 +1,75 @@
+plugins {
+    // we don’t need to *apply* the plugin to the root project, do we?
+    id 'com.github.spotbugs' version '4.7.0' apply false
+}
+plugins {
+    id 'groovy'
+    id 'jacoco'
+    id 'se.thinkcode.cucumber-runner' version '0.0.8'
+}
+group 'example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+dependencies {
+implementation 'org.codehaus.groovy:groovy-all:3.0.7'
+  testImplementation platform("io.cucumber:cucumber-bom:7.0.0")
+
+  testImplementation 'io.cucumber:cucumber-java'
+  testImplementation 'io.cucumber:cucumber-testng'
+}
+
+configurations {
+    cucumberRuntime {
+        extendsFrom testImplementation
+    }
+}
+
+task cucumberCli() {
+    dependsOn assemble, testClasses
+    doLast {
+        javaexec {
+            main = "io.cucumber.core.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            args = [
+              '--plugin', 'pretty',
+              '--plugin', 'html:target/cucumber-report.html']
+        }
+    }
+}
+
+cucumber {
+    main = "io.cucumber.core.cli.Main"
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        csv.enabled true
+        html.destination file("${buildDir}/reports/html/jacoco")
+        xml.destination file("${buildDir}/reports/xml/jacoco")
+        csv.destination file("${buildDir}/reports/csv/jacoco")
+    }
+}
+
+
+apply plugin: 'com.github.spotbugs'
+spotbugs {
+    toolVersion = '4.2.2'
+    reportsDir = file("$project.buildDir/reports/findbugs")
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask) {
+    reports {
+        xml.enabled = false
+        html.enabled = true
+    }
+}
